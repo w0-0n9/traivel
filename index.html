@@ -672,6 +672,87 @@ footer{
 }
 .d-tile.main .dt-text span{color:var(--brown);}
 
+/* ---------- 정산 화면 ---------- */
+.s-title{
+  margin:0 4px 4px;
+  font-family:"Zilla Slab",Georgia,serif;
+  font-weight:700;
+  font-size:1.5rem;
+  letter-spacing:-.01em;
+}
+.s-sum{
+  margin:0 4px 16px;
+  font-size:.8rem;
+  color:var(--brown);
+}
+.s-card{
+  background:rgba(255,255,255,.55);
+  backdrop-filter:blur(20px) saturate(1.6);
+  -webkit-backdrop-filter:blur(20px) saturate(1.6);
+  border:1px solid rgba(255,255,255,.7);
+  border-radius:18px;
+  padding:16px 16px 13px;
+  margin-bottom:14px;
+  box-shadow:0 8px 22px rgba(14,28,79,.08), inset 0 1px 0 rgba(255,255,255,.8);
+  opacity:0;
+}
+.detail.open .s-card{animation:rise .45s cubic-bezier(.32,.72,.28,1) both;}
+.detail.open .s-card:nth-child(1){animation-delay:.08s;}
+.detail.open .s-card:nth-child(2){animation-delay:.16s;}
+.s-card h3{
+  margin:0 0 10px;
+  font-family:"Zilla Slab",Georgia,serif;
+  font-size:1.15rem;
+  font-weight:700;
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+  gap:10px;
+}
+.s-card h3 .s-badge{
+  font-family:"Oswald",sans-serif;
+  font-weight:500;
+  font-size:.62rem;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  background:var(--ink);
+  color:#fff;
+  border-radius:100px;
+  padding:2px 9px;
+}
+.s-card h3 .s-badge.up{background:var(--accent);}
+.s-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+  gap:12px;
+  padding:7px 0;
+  border-top:1px solid var(--hair);
+  font-size:.84rem;
+}
+.s-row .s-l em{
+  display:block;
+  font-style:normal;
+  font-size:.72rem;
+  color:var(--brown);
+  margin-top:1px;
+}
+.s-row .s-amt{
+  font-family:"Oswald",sans-serif;
+  letter-spacing:.03em;
+  white-space:nowrap;
+}
+.s-row.s-total{border-top:2px solid var(--ink);margin-top:4px;padding-top:10px;font-weight:600;}
+.s-row.s-total .s-amt{font-size:1.05rem;color:var(--accent);font-weight:600;}
+.s-row.s-each{border-top:1px dashed var(--hair);font-weight:600;}
+.s-row.s-each .s-amt{font-size:1rem;color:var(--ink);font-weight:600;}
+.s-note{
+  margin:10px 2px 2px;
+  font-size:.73rem;
+  line-height:1.5;
+  color:var(--brown);
+}
+
 /* ---------- floating glass tab bar ---------- */
 .tabbar{
   position:fixed;
@@ -898,7 +979,7 @@ footer{
     <button class="d-close" id="d-close" aria-label="닫기">✕</button>
   </div>
   <div class="d-card" id="d-card"></div>
-  <div class="d-tiles">
+  <div class="d-tiles" id="d-tiles">
     <a class="d-tile main" id="d-plan" href="#">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/></svg>
       <span class="dt-text"><b>Plan</b><span>여행 계획서</span></span>
@@ -916,6 +997,15 @@ footer{
       <span class="dt-text"><b>정산하기</b><span>경비 정산</span></span>
     </button>
   </div>
+</section>
+
+<section class="detail" id="settle" role="dialog" aria-label="정산하기" aria-hidden="true">
+  <div class="detail-bar">
+    <button class="d-close" id="s-close" aria-label="닫기">✕</button>
+  </div>
+  <p class="s-title">정산하기</p>
+  <p class="s-sum" id="s-sum"></p>
+  <div id="s-body"></div>
 </section>
 
 <nav class="tabbar" aria-label="메뉴">
@@ -1245,8 +1335,12 @@ footer{
   backdrop.addEventListener('click', closeSheet);
   document.addEventListener('keydown', function (e) {
     if (e.key !== 'Escape') return;
+    var s = document.getElementById('settle');
     var d = document.getElementById('detail');
-    if (d && d.classList.contains('open')) {
+    if (s && s.classList.contains('open')) {
+      s.classList.remove('open');
+      s.setAttribute('aria-hidden', 'true');
+    } else if (d && d.classList.contains('open')) {
       d.classList.remove('open');
       d.setAttribute('aria-hidden', 'true');
     } else {
@@ -1357,7 +1451,7 @@ footer{
   });
   document.getElementById('d-blog').addEventListener('click', function () { showToast('📝 Blog — 준비 중이에요'); });
   document.getElementById('d-gallery').addEventListener('click', function () { showToast('📸 Gallery — 준비 중이에요'); });
-  document.getElementById('d-split').addEventListener('click', function () { showToast('💸 정산하기 — 준비 중이에요'); });
+  document.getElementById('d-split').addEventListener('click', function () { openSettle(); });
 
   ups.forEach(function (el) {
     upZone.appendChild(el);
@@ -1467,9 +1561,71 @@ footer{
     clearTimeout(toastTimer);
     toastTimer = setTimeout(function () { toast.classList.remove('show'); }, 1800);
   }
-  document.getElementById('tab-split').addEventListener('click', function () {
-    showToast('💸 정산하기 — 준비 중이에요');
-  });
+
+  // ---- 정산하기: 여행별 Costs (계획 페이지 Costs 섹션과 동일한 데이터) ----
+  var COSTS = [
+    {
+      card: 'card-vegas', title: '라스베가스', dates: 'JUL 3 — JUL 5 · 2026',
+      items: [
+        ['항공', 'UA1631·UA1681 왕복 · 2인', 981.12],
+        ['좌석 지정', '왕복 4석 · $69.88씩', 279.52],
+        ['호텔 2박', 'Mandalay Bay · 리조트피 포함', 520.42],
+        ['렌터카', 'Alamo 머스탱 컨버터블 · 1일', 72.22],
+        ['Lyft', 'Little Ferry → EWR', 44.96]
+      ],
+      note: 'Sphere 티켓(마이리얼트립 결제), 식비, 우버, 카지노 등 현장 지출 미포함'
+    },
+    {
+      card: 'card-boston', title: '보스턴', dates: 'SEP 5 — SEP 7 · 2026',
+      items: [
+        ['항공', 'UA 왕복 · 2인', 581.60],
+        ['호텔 2박', '체이스 포인트 46,832', 468.32],
+        ['호텔 리조트피', '체크인 때 결제', 70.00],
+        ['야구 티켓', 'Red Sox vs Angels · 리세일 2매', 253.00],
+        ['주차 3일', 'SpotHero', 51.55]
+      ],
+      note: '식비, 현지 교통, 입장료 미포함 · 호텔은 포인트를 1점당 1센트로 환산'
+    }
+  ];
+  function fmt(n) { return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  var settle = document.getElementById('settle');
+  var sBody = document.getElementById('s-body');
+  function renderSettle() {
+    sBody.innerHTML = '';
+    var spent = 0, planned = 0;
+    COSTS.forEach(function (c) {
+      var el = document.getElementById(c.card);
+      var isPast = el && new Date(el.dataset.end + 'T23:59:59') < now;
+      var total = c.items.reduce(function (s, it) { return s + it[2]; }, 0);
+      if (isPast) spent += total; else planned += total;
+      var card = document.createElement('div');
+      card.className = 's-card';
+      var rows = c.items.map(function (it) {
+        return '<div class="s-row"><span class="s-l">' + it[0] + '<em>' + it[1] + '</em></span><span class="s-amt">' + fmt(it[2]) + '</span></div>';
+      }).join('');
+      card.innerHTML =
+        '<h3>' + c.title + '<span class="s-badge' + (isPast ? '' : ' up') + '">' + (isPast ? 'Trip Log' : 'Upcoming') + '</span></h3>' +
+        rows +
+        '<div class="s-row s-total"><span class="s-l">합계 (2인)</span><span class="s-amt">' + fmt(total) + '</span></div>' +
+        '<div class="s-row s-each"><span class="s-l">1인당</span><span class="s-amt">' + fmt(total / 2) + '</span></div>' +
+        '<p class="s-note">' + c.note + '</p>';
+      sBody.appendChild(card);
+    });
+    document.getElementById('s-sum').textContent =
+      '다녀온 여행 ' + fmt(spent) + ' · 다가오는 여행 ' + fmt(planned);
+  }
+  function openSettle() {
+    renderSettle();
+    settle.classList.add('open');
+    settle.setAttribute('aria-hidden', 'false');
+    settle.scrollTop = 0;
+  }
+  function closeSettle() {
+    settle.classList.remove('open');
+    settle.setAttribute('aria-hidden', 'true');
+  }
+  document.getElementById('s-close').addEventListener('click', closeSettle);
+  document.getElementById('tab-split').addEventListener('click', openSettle);
   document.getElementById('tab-search').addEventListener('click', function () {
     openSheet();
     searchbar.classList.add('show');
