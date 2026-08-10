@@ -674,16 +674,11 @@ footer{
 
 /* ---------- 정산 화면 ---------- */
 .s-title{
-  margin:0 4px 4px;
+  margin:0 4px 16px;
   font-family:"Zilla Slab",Georgia,serif;
   font-weight:700;
   font-size:1.5rem;
   letter-spacing:-.01em;
-}
-.s-sum{
-  margin:0 4px 16px;
-  font-size:.8rem;
-  color:var(--brown);
 }
 .s-card{
   background:rgba(255,255,255,.55);
@@ -1020,7 +1015,6 @@ footer{
     <button class="d-close" id="s-close" aria-label="닫기">✕</button>
   </div>
   <p class="s-title">정산하기</p>
-  <p class="s-sum" id="s-sum"></p>
   <div id="s-body"></div>
 </section>
 
@@ -1608,7 +1602,6 @@ footer{
   var sBody = document.getElementById('s-body');
   function renderSettle() {
     sBody.innerHTML = '';
-    var spent = 0, planned = 0;
     // 다가오는 여행(임박순)을 위로, 다녀온 여행(최신순)은 아래에 접어서
     var entries = COSTS.map(function (c) {
       var el = document.getElementById(c.card);
@@ -1625,7 +1618,6 @@ footer{
     ups.concat(pasts).forEach(function (e) {
       var c = e.c, isPast = e.past;
       var total = c.items.reduce(function (s, it) { return s + it[2]; }, 0);
-      if (isPast) spent += total; else planned += total;
       var card = document.createElement('div');
       card.className = 's-card' + (isPast ? ' past folded' : '');
       var rows = c.items.map(function (it) {
@@ -1644,8 +1636,6 @@ footer{
       }
       sBody.appendChild(card);
     });
-    document.getElementById('s-sum').textContent =
-      '다녀온 여행 ' + fmt(spent) + ' · 다가오는 여행 ' + fmt(planned);
   }
   function openSettle() {
     renderSettle();
