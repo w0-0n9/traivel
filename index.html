@@ -705,10 +705,26 @@ footer{
   font-size:1.15rem;
   font-weight:700;
   display:flex;
-  justify-content:space-between;
   align-items:baseline;
-  gap:10px;
+  gap:8px;
 }
+.s-card h3 .s-name{flex:1;}
+.s-caret{
+  font-style:normal;
+  font-size:.8rem;
+  color:var(--brown);
+  transition:transform .3s ease;
+}
+.s-card:not(.folded) .s-caret{transform:rotate(180deg);}
+.s-card.past{cursor:pointer;-webkit-user-select:none;user-select:none;}
+.s-items, .s-extra{
+  overflow:hidden;
+  max-height:600px;
+  opacity:1;
+  transition:max-height .45s cubic-bezier(.32,.72,.28,1), opacity .3s ease;
+}
+.s-card.folded .s-items, .s-card.folded .s-extra{max-height:0;opacity:0;}
+.s-card.folded .s-row.s-total{border-top-width:0;margin-top:0;padding-top:2px;}
 .s-card h3 .s-badge{
   font-family:"Oswald",sans-serif;
   font-weight:500;
@@ -1593,22 +1609,39 @@ footer{
   function renderSettle() {
     sBody.innerHTML = '';
     var spent = 0, planned = 0;
-    COSTS.forEach(function (c) {
+    // 다가오는 여행(임박순)을 위로, 다녀온 여행(최신순)은 아래에 접어서
+    var entries = COSTS.map(function (c) {
       var el = document.getElementById(c.card);
-      var isPast = el && new Date(el.dataset.end + 'T23:59:59') < now;
+      return {
+        c: c,
+        start: el ? new Date(el.dataset.start) : new Date(0),
+        past: el ? new Date(el.dataset.end + 'T23:59:59') < now : true
+      };
+    });
+    var ups = entries.filter(function (e) { return !e.past; })
+      .sort(function (a, b) { return a.start - b.start; });
+    var pasts = entries.filter(function (e) { return e.past; })
+      .sort(function (a, b) { return b.start - a.start; });
+    ups.concat(pasts).forEach(function (e) {
+      var c = e.c, isPast = e.past;
       var total = c.items.reduce(function (s, it) { return s + it[2]; }, 0);
       if (isPast) spent += total; else planned += total;
       var card = document.createElement('div');
-      card.className = 's-card';
+      card.className = 's-card' + (isPast ? ' past folded' : '');
       var rows = c.items.map(function (it) {
         return '<div class="s-row"><span class="s-l">' + it[0] + '<em>' + it[1] + '</em></span><span class="s-amt">' + fmt(it[2]) + '</span></div>';
       }).join('');
       card.innerHTML =
-        '<h3>' + c.title + '<span class="s-badge' + (isPast ? '' : ' up') + '">' + (isPast ? 'Trip Log' : 'Upcoming') + '</span></h3>' +
-        rows +
+        '<h3><span class="s-name">' + c.title + '</span><span class="s-badge' + (isPast ? '' : ' up') + '">' + (isPast ? 'Trip Log' : 'Upcoming') + '</span>' + (isPast ? '<i class="s-caret">▾</i>' : '') + '</h3>' +
+        '<div class="s-items">' + rows + '</div>' +
         '<div class="s-row s-total"><span class="s-l">합계 (2인)</span><span class="s-amt">' + fmt(total) + '</span></div>' +
-        '<div class="s-row s-each"><span class="s-l">1인당</span><span class="s-amt">' + fmt(total / 2) + '</span></div>' +
-        '<p class="s-note">' + c.note + '</p>';
+        '<div class="s-extra">' +
+          '<div class="s-row s-each"><span class="s-l">1인당</span><span class="s-amt">' + fmt(total / 2) + '</span></div>' +
+          '<p class="s-note">' + c.note + '</p>' +
+        '</div>';
+      if (isPast) {
+        card.addEventListener('click', function () { card.classList.toggle('folded'); });
+      }
       sBody.appendChild(card);
     });
     document.getElementById('s-sum').textContent =
