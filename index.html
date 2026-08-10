@@ -187,6 +187,45 @@ body{
   justify-content:space-between;
   gap:10px;
 }
+/* 지역별 경험치 */
+.ws-subs{
+  margin-top:11px;
+  padding-top:11px;
+  border-top:1px solid var(--hair);
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.ws-subs:empty{display:none;}
+.ws-sub{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-size:.73rem;
+  color:var(--brown);
+}
+.ws-sub b{
+  flex:0 0 58px;
+  font-weight:600;
+  font-size:.76rem;
+  color:var(--ink);
+}
+.ws-sub .sbar{
+  flex:1;
+  height:5px;
+  border-radius:100px;
+  background:#F1E7EF;
+  overflow:hidden;
+}
+.ws-sub .sbar i{
+  display:block;
+  height:100%;
+  border-radius:100px;
+  background:linear-gradient(90deg,#7FA8D9,#A9C6E8);
+  width:0;
+  transition:width 1s cubic-bezier(.32,.72,.28,1) .45s;
+}
+.ws-sub span{flex:0 0 auto;white-space:nowrap;}
 
 /* ---------- globe (페이지 위에 바로) ---------- */
 .globe-sec{
@@ -767,6 +806,7 @@ footer{
       </div>
       <div class="ws-bar"><i id="ws-fill"></i></div>
       <p class="ws-count"><span id="ws-visited"></span><span id="ws-total"></span></p>
+      <div class="ws-subs" id="ws-subs"></div>
     </div>
   </section>
 
@@ -873,9 +913,20 @@ footer{
   var dpr = Math.min(window.devicePixelRatio || 1, 2);
 
   var PLACES = [
-    { name: 'Las Vegas', lat: 36.17, lon: -115.14, color: '#7FA8D9', card: 'card-vegas',  country: 'US', flag: '🇺🇸', countryName: '미국' },
-    { name: 'Boston',    lat: 42.36, lon: -71.06,  color: '#E85D9F', card: 'card-boston', country: 'US', flag: '🇺🇸', countryName: '미국' }
+    { name: 'Las Vegas', lat: 36.17, lon: -115.14, color: '#7FA8D9', card: 'card-vegas',  country: 'US', countryName: '미국', continent: 'NA', state: 'NV' },
+    { name: 'Boston',    lat: 42.36, lon: -71.06,  color: '#E85D9F', card: 'card-boston', country: 'US', countryName: '미국', continent: 'NA', state: 'MA' }
   ];
+
+  // 지역별 경험치 기준 (국가 수는 UN 기준 대략치)
+  var REGION_META = {
+    US: { label: '미국',     total: 50, unit: '개 주' },
+    NA: { label: '북미',     total: 23, unit: '개국' },
+    SA: { label: '남미',     total: 12, unit: '개국' },
+    EU: { label: '유럽',     total: 44, unit: '개국' },
+    AS: { label: '아시아',   total: 48, unit: '개국' },
+    AF: { label: '아프리카', total: 54, unit: '개국' },
+    OC: { label: '오세아니아', total: 14, unit: '개국' }
+  };
 
   var size = 0, radius = 0, projection = null, path = null;
   var land = null, landReady = false;
@@ -1420,6 +1471,46 @@ footer{
   document.getElementById('ws-total').textContent = codes.length + ' / ' + TOTAL_COUNTRIES + '개국';
   requestAnimationFrame(function () {
     document.getElementById('ws-fill').style.width = Math.max(pct, 1.6) + '%';
+  });
+
+  // ---- 지역별 경험치: 방문 기록이 있는 지역만 표시 ----
+  var visitedStates = {};      // 미국 주
+  var contCountries = {};      // 대륙 코드 → {국가코드: 1}
+  document.querySelectorAll('.trip[data-start]').forEach(function (el) {
+    if (new Date(el.dataset.start + 'T00:00:00') > now) return;
+    for (var ri = 0; ri < PLACES.length; ri++) {
+      if (PLACES[ri].card !== el.id) continue;
+      var rp = PLACES[ri];
+      if (rp.state) visitedStates[rp.state] = 1;
+      if (rp.continent) {
+        contCountries[rp.continent] = contCountries[rp.continent] || {};
+        contCountries[rp.continent][rp.country] = 1;
+      }
+      break;
+    }
+  });
+  var subRows = [];
+  if (Object.keys(visitedStates).length) {
+    subRows.push({ key: 'US', cur: Object.keys(visitedStates).length });
+  }
+  Object.keys(contCountries).forEach(function (c) {
+    subRows.push({ key: c, cur: Object.keys(contCountries[c]).length });
+  });
+  var subsEl = document.getElementById('ws-subs');
+  subRows.forEach(function (r) {
+    var meta = REGION_META[r.key];
+    if (!meta) return;
+    var rpct = r.cur / meta.total * 100;
+    var row = document.createElement('div');
+    row.className = 'ws-sub';
+    row.innerHTML = '<b></b><div class="sbar"><i></i></div><span></span>';
+    row.querySelector('b').textContent = meta.label;
+    row.querySelector('span').textContent =
+      r.cur + ' / ' + meta.total + meta.unit + ' · ' + (rpct >= 10 ? Math.round(rpct) : rpct.toFixed(1)) + '%';
+    subsEl.appendChild(row);
+    requestAnimationFrame(function () {
+      row.querySelector('.sbar i').style.width = Math.max(rpct, 2) + '%';
+    });
   });
 
   // ---- 하트 알림: 예정·진행 중 여행이 있으면 표시 ----
