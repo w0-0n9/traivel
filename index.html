@@ -213,7 +213,7 @@ body{
   transition:max-height .45s cubic-bezier(.32,.72,.28,1), opacity .3s ease, margin .35s ease, padding .35s ease, border-color .3s ease;
 }
 .world-stat.open .ws-subs{
-  max-height:240px;
+  max-height:340px;
   opacity:1;
   margin-top:11px;
   padding-top:11px;
@@ -1512,12 +1512,11 @@ footer{
       break;
     }
   });
-  var subRows = [];
-  if (Object.keys(visitedStates).length) {
-    subRows.push({ key: 'US', cur: Object.keys(visitedStates).length });
-  }
-  Object.keys(contCountries).forEach(function (c) {
-    subRows.push({ key: c, cur: Object.keys(contCountries[c]).length });
+  var subRows = ['US', 'NA', 'SA', 'EU', 'AS', 'AF', 'OC'].map(function (key) {
+    var cur = key === 'US'
+      ? Object.keys(visitedStates).length
+      : Object.keys(contCountries[key] || {}).length;
+    return { key: key, cur: cur };
   });
   var subsEl = document.getElementById('ws-subs');
   subRows.forEach(function (r) {
@@ -1530,7 +1529,7 @@ footer{
     row.querySelector('b').textContent = meta.label;
     row.querySelector('span').textContent =
       r.cur + ' / ' + meta.total + meta.unit + ' · ' + (rpct >= 10 ? Math.round(rpct) : rpct.toFixed(1)) + '%';
-    row.querySelector('.sbar i').dataset.w = Math.max(rpct, 2);
+    row.querySelector('.sbar i').dataset.w = rpct > 0 ? Math.max(rpct, 2) : 0;
     subsEl.appendChild(row);
   });
 
