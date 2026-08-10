@@ -1429,8 +1429,10 @@ footer{
   var dCard = document.getElementById('d-card');
   var dPlan = document.getElementById('d-plan');
   var veilColor = '#FDF9FB';
+  var detailCardId = null;   // 상세 뷰가 보여주는 여행 (정산 필터용)
   function openDetail(card) {
     veilColor = card.dataset.color || '#FDF9FB';
+    detailCardId = card.id;
     var clone = card.cloneNode(true);
     clone.classList.remove('folded');
     clone.removeAttribute('href');
@@ -1461,7 +1463,7 @@ footer{
   });
   document.getElementById('d-blog').addEventListener('click', function () { showToast('📝 Blog — 준비 중이에요'); });
   document.getElementById('d-gallery').addEventListener('click', function () { showToast('📸 Gallery — 준비 중이에요'); });
-  document.getElementById('d-split').addEventListener('click', function () { openSettle(); });
+  document.getElementById('d-split').addEventListener('click', function () { openSettle(detailCardId); });
 
   ups.forEach(function (el) {
     upZone.appendChild(el);
@@ -1600,10 +1602,13 @@ footer{
   function fmt(n) { return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
   var settle = document.getElementById('settle');
   var sBody = document.getElementById('s-body');
-  function renderSettle() {
+  function renderSettle(filterCard) {
     sBody.innerHTML = '';
     // 다가오는 여행(임박순)을 위로, 다녀온 여행(최신순)은 아래에 접어서
-    var entries = COSTS.map(function (c) {
+    var source = filterCard
+      ? COSTS.filter(function (c) { return c.card === filterCard; })
+      : COSTS;
+    var entries = source.map(function (c) {
       var el = document.getElementById(c.card);
       return {
         c: c,
@@ -1619,26 +1624,28 @@ footer{
       var c = e.c, isPast = e.past;
       var total = c.items.reduce(function (s, it) { return s + it[2]; }, 0);
       var card = document.createElement('div');
-      card.className = 's-card' + (isPast ? ' past folded' : '');
+      // 특정 여행만 보는 화면에서는 접지 않고 바로 펼쳐서
+      var folded = isPast && !filterCard;
+      card.className = 's-card' + (folded ? ' past folded' : '');
       var rows = c.items.map(function (it) {
         return '<div class="s-row"><span class="s-l">' + it[0] + '<em>' + it[1] + '</em></span><span class="s-amt">' + fmt(it[2]) + '</span></div>';
       }).join('');
       card.innerHTML =
-        '<h3><span class="s-name">' + c.title + '</span><span class="s-badge' + (isPast ? '' : ' up') + '">' + (isPast ? 'Trip Log' : 'Upcoming') + '</span>' + (isPast ? '<i class="s-caret">▾</i>' : '') + '</h3>' +
+        '<h3><span class="s-name">' + c.title + '</span><span class="s-badge' + (isPast ? '' : ' up') + '">' + (isPast ? 'Trip Log' : 'Upcoming') + '</span>' + (folded || (isPast && !filterCard) ? '<i class="s-caret">▾</i>' : '') + '</h3>' +
         '<div class="s-items">' + rows + '</div>' +
         '<div class="s-row s-total"><span class="s-l">합계 (2인)</span><span class="s-amt">' + fmt(total) + '</span></div>' +
         '<div class="s-extra">' +
           '<div class="s-row s-each"><span class="s-l">1인당</span><span class="s-amt">' + fmt(total / 2) + '</span></div>' +
           '<p class="s-note">' + c.note + '</p>' +
         '</div>';
-      if (isPast) {
+      if (folded) {
         card.addEventListener('click', function () { card.classList.toggle('folded'); });
       }
       sBody.appendChild(card);
     });
   }
-  function openSettle() {
-    renderSettle();
+  function openSettle(filterCard) {
+    renderSettle(filterCard);
     settle.classList.add('open');
     settle.setAttribute('aria-hidden', 'false');
     settle.scrollTop = 0;
@@ -1648,7 +1655,7 @@ footer{
     settle.setAttribute('aria-hidden', 'true');
   }
   document.getElementById('s-close').addEventListener('click', closeSettle);
-  document.getElementById('tab-split').addEventListener('click', openSettle);
+  document.getElementById('tab-split').addEventListener('click', function () { openSettle(); });
   document.getElementById('tab-search').addEventListener('click', function () {
     openSheet();
     searchbar.classList.add('show');
