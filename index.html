@@ -563,6 +563,12 @@ footer{
   background:linear-gradient(160deg,#F0A832 0%,#E07A3A 42%,#C94F2A 74%,#8C3A1A 100%);
   box-shadow:0 -6px 24px rgba(201,79,42,.28), 0 10px 24px rgba(14,28,79,.14);
 }
+.trip.montauk{
+  background:
+    radial-gradient(120% 70% at 85% 118%, rgba(214,120,62,.55) 0%, rgba(214,120,62,0) 60%),
+    linear-gradient(172deg,#173A46 0%,#1F4A57 55%,#2D5A61 100%);
+  box-shadow:0 -6px 24px rgba(31,74,87,.28), 0 10px 24px rgba(14,28,79,.14);
+}
 
 /* ---------- 카드 상세 뷰 ---------- */
 .detail{
@@ -978,6 +984,15 @@ footer{
       <div class="t-pills"><span>Fenway Park</span><span>Charles River</span><span>Lobster Roll</span></div>
     </a>
 
+    <a class="trip montauk" id="card-montauk" href="/montauk-trip-2026/"
+       data-city="몬탁" data-start="2026-10-24" data-end="2026-10-25"
+       data-color="#1F4A57">
+      <p class="t-eyebrow">Fall Getaway<span class="status" data-status></span></p>
+      <h3>MONTAUK</h3>
+      <p class="t-date">OCT 24 — OCT 25 · 2026 · 1박 2일</p>
+      <div class="t-pills"><span>Lighthouse</span><span>Pumpkin Farm</span><span>Sunset</span><span>Sag Harbor</span></div>
+    </a>
+
   </div>
 </section>
 
@@ -1042,7 +1057,8 @@ footer{
 
   var PLACES = [
     { name: 'Las Vegas', lat: 36.17, lon: -115.14, color: '#7FA8D9', card: 'card-vegas',  country: 'US', countryName: '미국', continent: 'NA', state: 'NV' },
-    { name: 'Boston',    lat: 42.36, lon: -71.06,  color: '#E85D9F', card: 'card-boston', country: 'US', countryName: '미국', continent: 'NA', state: 'MA' }
+    { name: 'Boston',    lat: 42.36, lon: -71.06,  color: '#E85D9F', card: 'card-boston', country: 'US', countryName: '미국', continent: 'NA', state: 'MA', labelDy: -12 },
+    { name: 'Montauk',   lat: 41.07, lon: -71.86,  color: '#F6CBDD', card: 'card-montauk', country: 'US', countryName: '미국', continent: 'NA', state: 'NY' }
   ];
 
   // 지역별 경험치 기준 (국가 수는 UN 기준 대략치)
@@ -1202,9 +1218,10 @@ footer{
     ctx.textAlign = 'center';
     ctx.lineWidth = 3.5;
     ctx.strokeStyle = 'rgba(255,255,255,.92)';
-    ctx.strokeText(pl.name, x, y + 14);
+    var ly = y + (pl.labelDy || 14);   // 가까운 여행지끼리 라벨이 겹치면 labelDy로 비켜 놓음
+    ctx.strokeText(pl.name, x, ly);
     ctx.fillStyle = '#0E1C4F';
-    ctx.fillText(pl.name, x, y + 14);
+    ctx.fillText(pl.name, x, ly);
   }
 
   function frame() {
@@ -1597,6 +1614,14 @@ footer{
         ['주차 3일', 'SpotHero', 51.55]
       ],
       note: '식비, 현지 교통, 입장료 미포함 · 호텔은 포인트를 1점당 1센트로 환산'
+    },
+    {
+      card: 'card-montauk', title: '몬탁', dates: 'OCT 24 — OCT 25 · 2026',
+      items: [
+        ['숙소 1박', 'Ocean Vista Resort · Studio', 221.45],
+        ['세금', 'Taxes on fees', 31.56]
+      ],
+      note: '기름값, 톨, 주차, 등대 입장료, 식비 미포함'
     }
   ];
   function fmt(n) { return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
